@@ -25,26 +25,35 @@
 
 ;; Code here
 
+(require racket/stream (for-syntax racket/base racket/syntax syntax/parse))
+(provide define-sieve-box-constructor)
 
+(define-syntax (define-sieve-box-constructor stx)
+  (define-syntax-class sieve-box-constructor
+    #:description "Sieve box constructor"
+    (pattern (_ name:id body:expr ...)))
+  
+  (syntax-parse stx
+    (form:sieve-box-constructor
+     (with-syntax
+         ;;Add the scope introduced when the syntax object is passed into the transformer
+         ((stm (cadr (syntax-e (syntax-local-introduce (datum->syntax #f (list #'form (generate-temporary 'stream))))))))
+       #`(define (form.name stm)
+           (let* #,(syntax-local-introduce
+                    ;;Identifiers `current-value` and `other-item` are both available in the body of the filter
+                    #'((current-value (stream-first stm)) (new-filter (lambda (other-item) form.body ...))))
+             (stream-cons #:eager current-value
+                          (form.name (stream-filter new-filter (stream-rest stm))))))))))
 
 (module+ test
   ;; Any code in this `test` submodule runs when this file is run using DrRacket
   ;; or with `raco test`. The code here does not run when this file is
   ;; required by another module.
 
-  (check-equal? (+ 2 2) 4))
-
-(module+ main
-  ;; (Optional) main submodule. Put code here if you need it to be executed when
-  ;; this file is run using DrRacket or the `racket` executable.  The code here
-  ;; does not run when this file is required by another module. Documentation:
-  ;; http://docs.racket-lang.org/guide/Module_Syntax.html#%28part._main-and-test%29
-
-  (require racket/cmdline)
-  (define who (box "world"))
-  (command-line
-    #:program "my-program"
-    #:once-each
-    [("-n" "--name") name "Who to say hello to" (set-box! who name)]
-    #:args ()
-    (printf "hello ~a~n" (unbox who))))
+  (struct integer (n)
+    #:methods gen:stream [(define (stream-empty? _) #f)
+                          (define (stream-first i) (integer-n i))
+                          (define (stream-rest i) (integer (add1 (integer-n i))))])
+  (define-sieve-box-constructor primes-in
+    (not (zero? (remainder other-item current-value))))
+  (check-true (= 233 (time (stream-ref (primes-in (integer 2)) 50)))))
