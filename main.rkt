@@ -55,7 +55,7 @@
        (let ((wrapper (make-continuations-wrapper (map cons (syntax->list #'(form.operator ...)) (syntax->list #'(pass ...))))))
          #`(define (form.name stm)
              (let* #,(syntax-local-introduce
-                      ;;Identifiers `CURRENT` and `OTHER` are both available in the body of the filter
+                      ;;Identifiers `CURRENT` and `OTHER` are both available in the body of the function
                       ;;Other identifiers are either unstable or inavailable
                       #'((CURRENT (stream-first stm))
                          (pass (lambda (OTHER) form.body ...))
@@ -68,8 +68,6 @@
   ;; or with `raco test`. The code here does not run when this file is
   ;; required by another module.
 
-  (require racket/math)
-
   (define (standard-ith-prime i)
     (define (prime? n)
       (for/and ((f (in-naturals 2))) #:break (> (* f f) n)
@@ -80,7 +78,7 @@
             ((prime? s) (loop (add1 c) (add1 s)))
             (else (loop c (add1 s))))))
 
-  (define (new-ith-prime i)
+  (define (sieve-ith-prime i)
     (struct integer (n)
       #:methods gen:stream [(define (stream-empty? _) #f)
                             (define (stream-first i) (integer-n i))
@@ -92,12 +90,12 @@
     
     (stream-ref (primes-in (integer 2)) (sub1 i)))
   
-  (check-true (= 233 (standard-ith-prime 51) (new-ith-prime 51)))
+  (check-true (= 233 (standard-ith-prime 51) (sieve-ith-prime 51)))
 
   (define i (random 1000 2000))
   (displayln (format "Standard method: ~a" i))
   (define result1 (time (standard-ith-prime i)))
   (displayln (format "Sieve's approach: ~a" i))
-  (define result2 (time (new-ith-prime i)))
+  (define result2 (time (sieve-ith-prime i)))
 
   (check-true (= result1 result2)))
