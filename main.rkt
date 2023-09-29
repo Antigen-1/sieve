@@ -79,16 +79,11 @@
             (else (loop c (add1 s))))))
 
   (define (sieve-ith-prime i)
-    (struct integer (n)
-      #:methods gen:stream [(define (stream-empty? _) #f)
-                            (define (stream-first i) (integer-n i))
-                            (define (stream-rest i) (integer (add1 (integer-n i))))])
-    
     (define-sieve-box-constructor primes-in
       stream-filter
       ((not (zero? (remainder OTHER CURRENT)))))
     
-    (stream-ref (primes-in (integer 2)) (sub1 i)))
+    (stream-ref (primes-in (in-naturals 2)) (sub1 i)))
   
   (check-true (= 233 (standard-ith-prime 51) (sieve-ith-prime 51)))
 
